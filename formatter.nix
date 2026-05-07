@@ -1,0 +1,16 @@
+# treefmt-nix: `nix fmt` formats nix (alejandra), shell (shfmt),
+# and checks for dead code (deadnix).
+{inputs, ...}: {
+  imports = [inputs.treefmt-nix.flakeModule];
+
+  perSystem = {...}: {
+    treefmt = {
+      projectRootFile = "flake.nix";
+      programs = {
+        alejandra.enable = true;
+        shfmt.enable = true;
+        deadnix.enable = true;
+      };
+    };
+  };
+}

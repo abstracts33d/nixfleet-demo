@@ -4,3 +4,10 @@ result-*
 CLAUDE.md
 TODO.md
 *.qcow2
+
+# Private keys are generated post-clone by secrets/regenerate-demo-identity.sh.
+# OpenSSH refuses keys with mode looser than 0600, and git can't store 0600 —
+# so we don't track them. Their public counterparts (.pub, recipients.nix)
+# stay tracked so nix flake check works on a fresh clone.
+secrets/demo-ssh-key
+secrets/age-identity.txt

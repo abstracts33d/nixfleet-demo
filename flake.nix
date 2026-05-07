@@ -1,42 +1,62 @@
 {
-  description = "NixFleet Demo Fleet - reference implementation";
+  description = "nixfleet-demo — v0.2 minimal reference fleet";
 
   inputs = {
-    nixfleet.url = "github:arcanesys/nixfleet";
-    nixfleet-scopes = {
-      url = "github:arcanesys/nixfleet-scopes";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nixfleet.inputs.nixfleet-scopes.follows = "nixfleet-scopes";
+    # TEMPORARY: pinned to abstracts33d's fork on github (publicly mirrored
+    # from lab/main). Once v0.2 ships on the canonical arcanesys org, swap to:
+    #   nixfleet.url = "github:arcanesys/nixfleet/<v0.2-tag>";
+    # The fork mirror sidesteps the lab Caddy CA — public github uses
+    # publicly-trusted CAs so the runner VM doesn't need extra trust roots.
+    nixfleet.url = "github:abstracts33d/nixfleet?rev=ef7ab4e38b1502367e3c80f9f097e24a3ab690ae";
     nixpkgs.follows = "nixfleet/nixpkgs";
-    home-manager.follows = "nixfleet/home-manager";
-    disko.follows = "nixfleet/disko";
-    impermanence.follows = "nixfleet/impermanence";
-    compliance = {
-      url = "github:arcanesys/nixfleet-compliance";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     flake-parts.follows = "nixfleet/flake-parts";
     treefmt-nix.follows = "nixfleet/treefmt-nix";
+    attic = {
+      url = "github:booxter/attic/newer-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # TEMPORARY: same fork-mirror story as nixfleet above. Swap to
+    # `github:arcanesys/nixfleet-compliance` once v0.2 ships there.
+    compliance = {
+      url = "github:abstracts33d/nixfleet-compliance?rev=abff3d8eddb2d43628f56278efc1546c42965456";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs:
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux"];
+
       imports = [
         ./fleet.nix
         ./apps.nix
-        inputs.nixfleet.flakeModules.iso
-        inputs.nixfleet.flakeModules.formatter
+        ./formatter.nix
+        ./iso.nix
       ];
-      systems = ["x86_64-linux"];
 
-      # SSH keys baked into the installer ISO for automated installs
+      # Demo SSH key baked into the installer ISO so build-vm's
+      # nixos-anywhere SSH can authenticate as root during install.
       nixfleet.isoSshKeys = [
-        "ssh-ed25519 NixfleetDemoKeyReplaceWithYourOwn"
+        (builtins.readFile ./secrets/demo-ssh-key.pub)
       ];
+
+      flake.nixosConfigurations = {
+        forge = import ./hosts/forge.nix {
+          inherit inputs;
+          self = inputs.self;
+        };
+        cp = import ./hosts/cp.nix {
+          inherit inputs;
+          self = inputs.self;
+        };
+        web-01 = import ./hosts/web-01.nix {
+          inherit inputs;
+          self = inputs.self;
+        };
+        web-02 = import ./hosts/web-02.nix {
+          inherit inputs;
+          self = inputs.self;
+        };
+      };
     };
 }

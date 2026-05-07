@@ -1,0 +1,58 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  release:
+    # The forge runner registers itself as `native:host`; Forgejo Actions
+    # strips the `:host` suffix before label matching.
+    runs-on: native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refresh flake metadata
+        run: nix flake metadata --refresh
+
+      - name: Release fleet
+        # Pin nixfleet-release to the rev in flake.lock (not just `?ref=main`)
+        # so the producer schema matches the consumer's pin by construction.
+        # Sign with the local ed25519 key minted by release-signer scope on
+        # forge. The wrapper `nixfleet-sign` lives at
+        # /run/current-system/sw/bin/nixfleet-sign via systemPackages.
+        # Revocations are signed even when empty (gap C path).
+        run: |
+          set -euo pipefail
+          # Build a flake URL for nixfleet-release that works for both
+          # `type: github` (owner/repo) and `type: git` (url) lockfile entries.
+          nixfleet_node=$(jq '.nodes.nixfleet.locked' flake.lock)
+          nixfleet_rev=$(echo "$nixfleet_node" | jq -r '.rev')
+          nixfleet_type=$(echo "$nixfleet_node" | jq -r '.type')
+          case "$nixfleet_type" in
+            github)
+              owner=$(echo "$nixfleet_node" | jq -r '.owner')
+              repo=$(echo "$nixfleet_node" | jq -r '.repo')
+              flake_ref="github:$owner/$repo/$nixfleet_rev"
+              ;;
+            git)
+              url=$(echo "$nixfleet_node" | jq -r '.url')
+              flake_ref="git+$url?rev=$nixfleet_rev"
+              ;;
+            *)
+              echo "Unsupported nixfleet input type: $nixfleet_type" >&2
+              exit 1
+              ;;
+          esac
+          nix run "$flake_ref#nixfleet-release" -- \
+            --hosts auto \
+            --sign-cmd '/run/current-system/sw/bin/nixfleet-sign' \
+            --signature-algorithm ed25519 \
+            --reuse-unchanged-signature \
+            --revocations-attr 'fleet.revocations' \
+            --git-user-name 'demo-ci' \
+            --git-user-email 'demo-ci@nixfleet-demo.invalid' \
+            --git-commit \
+            --git-push origin:main

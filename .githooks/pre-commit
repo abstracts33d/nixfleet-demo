@@ -2,10 +2,19 @@
 set -euo pipefail
 
 echo "=== Checking for real SSH keys ==="
-if git diff --cached | grep '^+' | grep -v '^+++' | grep -qE 'ssh-(ed25519|rsa) AAAA[A-Za-z0-9+/]{40,}'; then
-  echo "BLOCKED: real SSH public key detected in staged files."
-  echo "Revert with: git checkout -- <file>"
-  exit 1
+# Demo SSH keys (secrets/demo-*) are intentionally checked in. The public
+# keys under that prefix are the demo identity, marked NOT FOR PRODUCTION.
+# Anywhere else in the tree, an ssh-(ed25519|rsa) line is a real key
+# slipped in by accident — block it.
+staged_outside_demo=$(git diff --cached --name-only | grep -v '^secrets/demo-' || true)
+if [ -n "$staged_outside_demo" ]; then
+  if git diff --cached -- ':!secrets/demo-*' | grep '^+' | grep -v '^+++' \
+       | grep -qE 'ssh-(ed25519|rsa) AAAA[A-Za-z0-9+/]{40,}'; then
+    echo "BLOCKED: real SSH public key detected in staged files."
+    echo "Demo keys live under secrets/demo-*; everything else must be a placeholder."
+    echo "Revert with: git checkout -- <file>"
+    exit 1
+  fi
 fi
 
 echo "All pre-commit checks passed."
