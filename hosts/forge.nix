@@ -47,6 +47,11 @@ inputs.nixfleet.lib.mkHost {
         nixfleet.forge = {
           domain = "forge.demo.invalid";
           appName = "Nixfleet Demo Forge";
+          # Bind on all interfaces so peer VMs can reach Forgejo HTTP via
+          # the multicast VLAN (`forge:3001` from cp's POV resolves to
+          # 10.0.100.2 — see modules/vm-network.nix). Production puts a
+          # reverse proxy in front and keeps Forgejo on loopback.
+          http.addr = "0.0.0.0";
           ssh.openFirewall = true;
           # First-boot admin user `demo` and SSH key `secrets/demo-ssh-key.pub`
           # registered against it. push-repo authenticates as `git@localhost`,

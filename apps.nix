@@ -31,35 +31,45 @@
         set -euo pipefail
         repo_root="$(git rev-parse --show-toplevel)"
         trust_file="$repo_root/modules/trust.nix"
-        marker='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
-        if ! grep -q "$marker" "$trust_file"; then
-          echo "trust.nix already has a fetched key, nothing to do."
-          exit 0
-        fi
+        placeholder='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
         echo "Note: forge must already be running. Run:"
-        echo "      nix run .#start-vm -- -h forge"
-        echo "Polling forge:2202 (SSH) for /var/lib/nixfleet-release/key.pub..."
-        pubkey=""
+        echo "      nix run .#start-vm -- -h forge --vlan 1234"
+        echo "Polling forge:2202 (SSH) for /var/lib/nixfleet-release/key.pub.b64..."
+        b64=""
         for _ in $(seq 1 60); do
-          if pubkey=$(ssh -p 2202 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-                          -i "$repo_root/secrets/demo-ssh-key" \
-                          -o ConnectTimeout=2 \
-                          root@localhost \
-                          cat /var/lib/nixfleet-release/key.pub 2>/dev/null); then
+          # key.pub.b64 contains the raw 32-byte ed25519 pubkey, base64-encoded
+          # (the trust.json wire format). The release-signer scope generates
+          # this alongside the PEM private key on first boot.
+          if b64=$(ssh -p 2202 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                       -i "$repo_root/secrets/demo-ssh-key" \
+                       -o ConnectTimeout=2 \
+                       root@localhost \
+                       cat /var/lib/nixfleet-release/key.pub.b64 2>/dev/null); then
             break
           fi
           sleep 1
         done
-        if [ -z "$pubkey" ]; then
-          echo "forge did not surface /var/lib/nixfleet-release/key.pub within 60s." >&2
+        if [ -z "$b64" ]; then
+          echo "forge did not surface /var/lib/nixfleet-release/key.pub.b64 within 60s." >&2
           echo "Hint: ssh -p 2202 root@localhost journalctl -u nixfleet-release-keygen" >&2
           exit 1
         fi
-        b64=$(echo "$pubkey" | awk '{print $2}')
-        sed -i "s|public = \"$marker\";|public = \"$b64\";|" "$trust_file"
-        ( cd "$repo_root" && git add modules/trust.nix \
-          && git commit -m "chore(demo): fetch release-signing pubkey from forge" )
-        echo "Trust file updated. Now run \`nix run .#start-vm -- --all\` and \`nix run .#push-repo\`."
+        # Find the current public-key line in trust.nix (placeholder or
+        # previously-fetched). Idempotent: if forge's key matches what
+        # the file already holds, exit clean without a churn commit.
+        current=$(grep -oE 'public = "[^"]+";' "$trust_file" | head -1 | sed -E 's/public = "([^"]+)";/\1/')
+        if [ "$current" = "$b64" ]; then
+          echo "trust.nix already pinned to forge's current pubkey — no change."
+          exit 0
+        fi
+        sed -i -E "s|public = \"[^\"]+\";|public = \"$b64\";|" "$trust_file"
+        if [ "$current" = "$placeholder" ]; then
+          msg="chore(demo): fetch release-signing pubkey from forge"
+        else
+          msg="chore(demo): refresh release-signing pubkey from forge (rotation)"
+        fi
+        ( cd "$repo_root" && git add modules/trust.nix && git commit -m "$msg" )
+        echo "Trust file updated. Now run \`nix run .#start-vm -- --all --vlan 1234\` and \`nix run .#push-repo\`."
       '';
     };
 

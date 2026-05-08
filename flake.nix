@@ -7,7 +7,7 @@
     #   nixfleet.url = "github:arcanesys/nixfleet/<v0.2-tag>";
     # The fork mirror sidesteps the lab Caddy CA — public github uses
     # publicly-trusted CAs so the runner VM doesn't need extra trust roots.
-    nixfleet.url = "github:abstracts33d/nixfleet?rev=ef7ab4e38b1502367e3c80f9f097e24a3ab690ae";
+    nixfleet.url = "github:abstracts33d/nixfleet?rev=24255b7703ae37039122428b957f313231d02ae6";
     nixpkgs.follows = "nixfleet/nixpkgs";
     flake-parts.follows = "nixfleet/flake-parts";
     treefmt-nix.follows = "nixfleet/treefmt-nix";
@@ -18,7 +18,7 @@
     # TEMPORARY: same fork-mirror story as nixfleet above. Swap to
     # `github:arcanesys/nixfleet-compliance` once v0.2 ships there.
     compliance = {
-      url = "github:abstracts33d/nixfleet-compliance?rev=abff3d8eddb2d43628f56278efc1546c42965456";
+      url = "github:abstracts33d/nixfleet-compliance?rev=52c8a169f354127b45111832cb31d12e81b6d07f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

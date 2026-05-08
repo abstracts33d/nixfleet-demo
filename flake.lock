@@ -35,17 +35,17 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1778166644,
-        "narHash": "sha256-CGIHa7M7f77WcE0772L7CNxk3UD0v0kwM4/W4wYeoRA=",
+        "lastModified": 1778256132,
+        "narHash": "sha256-2K2tZuf1n+frUv9DsPDJTUbnMVIt1E6uVSF04cnxbCQ=",
         "owner": "abstracts33d",
         "repo": "nixfleet-compliance",
-        "rev": "abff3d8eddb2d43628f56278efc1546c42965456",
+        "rev": "52c8a169f354127b45111832cb31d12e81b6d07f",
         "type": "github"
       },
       "original": {
         "owner": "abstracts33d",
         "repo": "nixfleet-compliance",
-        "rev": "abff3d8eddb2d43628f56278efc1546c42965456",
+        "rev": "52c8a169f354127b45111832cb31d12e81b6d07f",
         "type": "github"
       }
     },
@@ -434,17 +434,17 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1778166877,
-        "narHash": "sha256-PsaiRjZUOo/P8e+mvM1xNW9SmU1Wb+hS1IHj2cV0LBA=",
+        "lastModified": 1778259246,
+        "narHash": "sha256-vZ6vbG4JL2bgm2roNdT7+kXNzqE3QvZy7Pjo+JIKI5s=",
         "owner": "abstracts33d",
         "repo": "nixfleet",
-        "rev": "ef7ab4e38b1502367e3c80f9f097e24a3ab690ae",
+        "rev": "24255b7703ae37039122428b957f313231d02ae6",
         "type": "github"
       },
       "original": {
         "owner": "abstracts33d",
         "repo": "nixfleet",
-        "rev": "ef7ab4e38b1502367e3c80f9f097e24a3ab690ae",
+        "rev": "24255b7703ae37039122428b957f313231d02ae6",
         "type": "github"
       }
     },

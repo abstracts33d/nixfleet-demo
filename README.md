@@ -188,13 +188,23 @@ nix run .#stop-vm  -- --all
 nix run .#clean-vm -- --all
 ```
 
-Removes per-host VM state. Next `start-vm` re-runs first-boot oneshots (new ed25519 release key, new attic key, new runner token).
+Removes per-host VM state including the qcow2 disks. The next time you want VMs, you must `build-vm` again first:
+
+```bash
+nix run .#build-vm -- --all --identity-key secrets/demo-ssh-key
+nix run .#fetch-release-key   # rotates trust.nix to forge's NEW key
+nix run .#start-vm -- --all --vlan 1234
+nix run .#push-repo
+```
+
+`fetch-release-key` is idempotent: if forge's pubkey matches what `modules/trust.nix` already pins, it exits clean with no commit. After a fresh boot, it rotates to the new key and produces a `chore(demo): refresh release-signing pubkey` commit.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `push-repo` says "forge Forgejo SSH not reachable on 2222" | forge not booted | `nix run .#start-vm -- -h forge` |
+| `push-repo` says "forge Forgejo SSH not reachable on 2222" | forge not booted, or disks were wiped by `clean-vm` and need `build-vm` again | `nix run .#build-vm -- -h forge --identity-key secrets/demo-ssh-key && nix run .#start-vm -- -h forge --vlan 1234` |
+| `start-vm` says `[<host>] No disk found. Run build-vm first.` | `clean-vm` removed the qcow2; need to reinstall before booting | `nix run .#build-vm -- -h <host> --identity-key secrets/demo-ssh-key` |
 | `fetch-release-key` says "did not surface key.pub within 60s" | First-boot keygen still running | `ssh -p 2202 root@localhost journalctl -u nixfleet-release-keygen -f` |
 | Agents log signature verification errors | trust.nix still has the zero-pubkey placeholder | Run `nix run .#fetch-release-key`, then `nix run .#clean-vm -- -h cp && nix run .#clean-vm -- -h web-01 && nix run .#clean-vm -- -h web-02 && nix run .#start-vm -- --all` |
 | `nixfleet status` shows hosts as `Stale` | `freshnessWindow` exceeded; CI hasn't signed recently | Push again to retrigger CI |
