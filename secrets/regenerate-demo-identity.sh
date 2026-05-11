@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Regenerate the demo identity (SSH + age) for nixfleet-demo.
+# Regenerate the demo identity (SSH + age + fleet CA + bootstrap tokens) for
+# nixfleet-demo.
 #
 # WARNING: All material this script writes is PUBLIC by design.
 # The demo ships with checked-in keys so newcomers can boot the
@@ -7,15 +8,44 @@
 # this directory outside the demo.
 #
 # Run from the repo root: `bash secrets/regenerate-demo-identity.sh`.
-# The script is idempotent: if the keys already exist it does nothing
+# The script is idempotent: if files already exist it skips them
 # unless `--force` is passed.
 
 set -euo pipefail
+
+# Re-exec under `nix shell` with the toolchain we need if any tool is
+# missing. Avoids the "openssl: command not found" failure mode for
+# operators on minimal hosts (the nixfleet-cli build is cached after
+# the first run; the shell's payload is cheap on subsequent invocations).
+if ! command -v openssl >/dev/null ||
+  ! command -v ssh-keygen >/dev/null ||
+  ! command -v age-keygen >/dev/null ||
+  ! command -v python3 >/dev/null; then
+  if [ "${NIXFLEET_DEMO_REGEN_RESHIM:-}" = "1" ]; then
+    echo "ERROR: tools still missing after nix shell re-exec." >&2
+    exit 1
+  fi
+  exec env NIXFLEET_DEMO_REGEN_RESHIM=1 \
+    nix shell nixpkgs#openssl nixpkgs#openssh nixpkgs#age nixpkgs#python3 \
+    -c bash "$0" "$@"
+fi
 
 cd "$(dirname "$0")/.."
 
 force=0
 if [ "${1:-}" = "--force" ]; then force=1; fi
+
+# Hosts that run a nixfleet-agent. Forge + cp don't enroll, so they
+# don't need pre-generated SSH host keys or bootstrap tokens.
+agent_hosts=(web-01 web-02)
+
+# Token validity: 7 days. The demo's first-boot enrollment must
+# complete within this window. Bumping past 168h tips the token from
+# "demo convenience" toward "long-lived credential" without being
+# meaningfully more useful.
+token_validity_hours=168
+
+mkdir -p secrets/host-keys secrets/bootstrap-tokens
 
 # --- Step 1: SSH keypair for git@forge ---------------------------------
 if [ -f secrets/demo-ssh-key ] && [ "$force" = 0 ]; then
@@ -47,7 +77,6 @@ else
 fi
 
 # --- Step 3: write secrets/recipients.nix ----------------------------------
-# Extract the public key from age-identity.txt.
 recipient=$(grep -oE 'age1[a-z0-9]+' secrets/age-identity.txt | head -1)
 if [ -z "$recipient" ]; then
   echo "ERROR: could not extract age recipient from secrets/age-identity.txt"
@@ -64,10 +93,164 @@ cat >secrets/recipients.nix <<EOF
 }
 EOF
 
+# --- Step 4: org root key (signs bootstrap tokens) -------------------------
+# Ed25519 PKCS#8 PEM. Operator passes this to `nixfleet mint-token`;
+# CP verifies token signatures via `nixfleet.trust.orgRootKey.current`.
+if [ -f secrets/org-root.pem ] && [ "$force" = 0 ]; then
+  echo "secrets/org-root.pem already exists. Pass --force to regenerate."
+else
+  rm -f secrets/org-root.pem secrets/org-root.pub.b64
+  openssl genpkey -algorithm ed25519 -out secrets/org-root.pem
+  chmod 0600 secrets/org-root.pem
+fi
+
+# Always re-derive the public key — cheap, and keeps the .b64 in sync if
+# someone hand-edits the PEM. Format: raw 32-byte ed25519 pubkey,
+# base64-encoded (the trust.json wire format). Extracted from the 44-byte
+# DER SubjectPublicKeyInfo by stripping the 12-byte ASN.1 wrapper.
+openssl pkey -in secrets/org-root.pem -pubout -outform DER |
+  tail -c 32 |
+  base64 -w 0 >secrets/org-root.pub.b64
+echo >>secrets/org-root.pub.b64
+
+# --- Step 5: fleet CA (signs CP TLS server cert + agent + operator certs) --
+# ECDSA-P-256 self-signed root. v0.2's `nixfleet mint-operator-cert`
+# rejects non-P-256 fleet roots ("matches issuance CA chain"), and the
+# CP's FileCaSigner reads any rcgen-compatible algorithm — P-256 is the
+# narrow intersection. CP's first-boot oneshot uses this CA to mint its
+# own TLS server cert; agents + operators trust the CA via `tls.caCert`.
+# Demo gotcha: an older ed25519 fleet-ca-key.pem from prior runs forces
+# `--force` to overwrite (the operator-cert mint fails loudly otherwise).
+needs_p256_regen=0
+if [ -f secrets/fleet-ca-key.pem ]; then
+  if ! openssl pkey -in secrets/fleet-ca-key.pem -text -noout 2>/dev/null |
+    grep -q 'ASN1 OID: prime256v1'; then
+    needs_p256_regen=1
+  fi
+fi
+if [ -f secrets/fleet-ca.pem ] && [ "$force" = 0 ] && [ "$needs_p256_regen" = 0 ]; then
+  echo "secrets/fleet-ca.pem already exists (P-256). Pass --force to regenerate."
+else
+  if [ "$needs_p256_regen" = 1 ] && [ "$force" = 0 ]; then
+    echo "Detected legacy ed25519 fleet-ca; regenerating as P-256 (v0.2 issuance contract)."
+  fi
+  rm -f secrets/fleet-ca.pem secrets/fleet-ca-key.pem
+  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes \
+    -keyout secrets/fleet-ca-key.pem -out secrets/fleet-ca.pem \
+    -days 3650 \
+    -subj "/CN=nixfleet-demo CA (PUBLIC, NOT FOR PRODUCTION)" \
+    -addext "basicConstraints=critical,CA:TRUE" \
+    -addext "keyUsage=critical,keyCertSign,cRLSign"
+  chmod 0600 secrets/fleet-ca-key.pem
+  chmod 0644 secrets/fleet-ca.pem
+fi
+
+# --- Step 6: per-host SSH ed25519 keypairs ---------------------------------
+# Pre-generated so the public key can be declared in fleet.nix BEFORE
+# first boot. The agent uses /etc/ssh/ssh_host_ed25519_key as both its
+# SSH host key AND its mTLS client key — the CSR's pubkey must equal the
+# fleet-declared pubkey or `/v1/enroll` rejects the request.
+for host in "${agent_hosts[@]}"; do
+  key="secrets/host-keys/$host"
+  if [ -f "$key" ] && [ "$force" = 0 ]; then
+    echo "$key already exists. Pass --force to regenerate."
+  else
+    rm -f "$key" "$key.pub"
+    ssh-keygen -t ed25519 -N "" \
+      -C "$host (nixfleet-demo PUBLIC, NOT FOR PRODUCTION)" \
+      -f "$key" >/dev/null
+  fi
+done
+
+# --- Step 7: per-host bootstrap tokens -------------------------------------
+# Mint via the nixfleet flake's nixfleet-cli package. The fingerprint is
+# base64(SHA-256(raw_32_byte_pubkey)) — same shape the CP computes from
+# the CSR pubkey at enroll time.
+echo
+echo "Building nixfleet-cli to mint bootstrap tokens..."
+cli_path=$(nix build --no-link --print-out-paths --inputs-from . 'nixfleet#nixfleet-cli')
+mint="$cli_path/bin/nixfleet"
+
+for host in "${agent_hosts[@]}"; do
+  pub="secrets/host-keys/$host.pub"
+  token="secrets/bootstrap-tokens/$host.json"
+  if [ -f "$token" ] && [ "$force" = 0 ]; then
+    echo "$token already exists. Pass --force to regenerate."
+    continue
+  fi
+  # OpenSSH ed25519 pubkey body decodes to: 4-byte len + "ssh-ed25519"
+  # + 4-byte len + 32-byte raw key. tail -c 32 grabs the raw key.
+  fp=$(awk '{print $2}' "$pub" |
+    base64 -d |
+    tail -c 32 |
+    openssl dgst -sha256 -binary |
+    base64 -w 0)
+  "$mint" mint-token \
+    --hostname "$host" \
+    --csr-pubkey-fingerprint "$fp" \
+    --org-root-key secrets/org-root.pem \
+    --validity-hours "$token_validity_hours" \
+    >"$token"
+  chmod 0644 "$token"
+done
+
+# --- Step 8: patch modules/trust.nix with org root pubkey ------------------
+# Replace the placeholder value of orgRootKey.current. The slot is a
+# bare-string type (nixfleet's keySlotType pins the algorithm), so the
+# Nix declaration is `nixfleet.trust.orgRootKey.current = "...";` —
+# different shape from ciReleaseKey's `{algorithm, public}` submodule.
+org_root_b64=$(tr -d '\n' <secrets/org-root.pub.b64)
+trust_file=modules/trust.nix
+if grep -q 'nixfleet\.trust\.orgRootKey\.current' "$trust_file"; then
+  python3 - "$trust_file" "$org_root_b64" <<'PY'
+import re, sys, pathlib
+path, b64 = sys.argv[1], sys.argv[2]
+src = pathlib.Path(path).read_text()
+new = re.sub(
+    r'(nixfleet\.trust\.orgRootKey\.current\s*=\s*")[^"]*(")',
+    rf'\g<1>{b64}\g<2>',
+    src,
+)
+pathlib.Path(path).write_text(new)
+PY
+else
+  echo "WARNING: orgRootKey.current not declared in $trust_file."
+  echo "         Add it manually, or this demo's enrollment will fail at runtime."
+fi
+
+# --- Step 9: operator client cert (for `nixfleet status`) ------------------
+# v0.2 CLI requires an mTLS client cert against the fleet CA. The CN is
+# fixed (`operator-demo@nixfleet-demo-cp`) instead of the binary's
+# default `operator-${USER}@${HOSTNAME}` so the checked-in cert is
+# reproducible across operator workstations.
+mint_op="$cli_path/bin/nixfleet"
+if [ -f secrets/operator.pem ] && [ -f secrets/operator.key ] && [ "$force" = 0 ]; then
+  echo "secrets/operator.{pem,key} already exist. Pass --force to regenerate."
+else
+  mint_op_args=(
+    --root-cert secrets/fleet-ca.pem
+    --root-key secrets/fleet-ca-key.pem
+    --cn "operator-demo@nixfleet-demo-cp"
+    --output-cert secrets/operator.pem
+    --output-key secrets/operator.key
+    --days 365
+  )
+  if [ "$force" = 1 ]; then mint_op_args+=(--force); fi
+  "$mint_op" mint-operator-cert "${mint_op_args[@]}" >/dev/null
+fi
+
 echo
 echo "Demo identity regenerated:"
-echo "  - secrets/demo-ssh-key, secrets/demo-ssh-key.pub  (SSH for git@forge)"
-echo "  - secrets/age-identity.txt                        (age identity)"
-echo "  - secrets/recipients.nix                          (age recipient)"
+echo "  - secrets/demo-ssh-key{,.pub}            (SSH for git@forge)"
+echo "  - secrets/age-identity.txt               (age identity)"
+echo "  - secrets/recipients.nix                 (age recipient)"
+echo "  - secrets/org-root.pem                   (signs bootstrap tokens)"
+echo "  - secrets/org-root.pub.b64               (declared in modules/trust.nix)"
+echo "  - secrets/fleet-ca.pem, fleet-ca-key.pem (signs CP TLS + agent client certs)"
+for host in "${agent_hosts[@]}"; do
+  echo "  - secrets/host-keys/$host{,.pub}        (agent SSH host + mTLS client key)"
+  echo "  - secrets/bootstrap-tokens/$host.json   (one-shot enrollment token, ${token_validity_hours}h)"
+done
+echo '  - secrets/operator.{pem,key}             (operator mTLS cert for `nixfleet status`, 365d)'
 echo
 echo "These files are PUBLIC. Do not deploy this fleet to production."

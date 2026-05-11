@@ -13,7 +13,7 @@
     algorithm = "ed25519";
     # 32 zero bytes, base64-encoded — placeholder. The real pubkey
     # lands here when the operator runs `nix run .#fetch-release-key`.
-    public = "AAAAC3NzaC1lZDI1NTE5AAAAIGLqKj/0izdnwo+QhrwsVLx0z1VCnKgnWggPMg6FVJW9";
+    public = "AAAAC3NzaC1lZDI1NTE5AAAAIJY1iXqJK1QCcpPcmzEHvvZ17qm2MCboHukATD7vF4Dv";
   };
 
   # Trust rotation slots are deliberately commented out for the demo.
@@ -21,7 +21,7 @@
   # 30-day rotation grace window, then `successor` + `retireAt` to
   # pre-announce the next rotation. See nixfleet contracts/trust.nix.
   #
-  # nixfleet.trust.ciReleaseKey.previous = { algorithm = "ed25519"; public = "..."; };
-  # nixfleet.trust.ciReleaseKey.successor = { algorithm = "ed25519"; public = "..."; };
+  # nixfleet.trust.ciReleaseKey.previous = { algorithm = "ed25519"; public = "AAAAC3NzaC1lZDI1NTE5AAAAIJY1iXqJK1QCcpPcmzEHvvZ17qm2MCboHukATD7vF4Dv"; };
+  # nixfleet.trust.ciReleaseKey.successor = { algorithm = "ed25519"; public = "AAAAC3NzaC1lZDI1NTE5AAAAIJY1iXqJK1QCcpPcmzEHvvZ17qm2MCboHukATD7vF4Dv"; };
   # nixfleet.trust.ciReleaseKey.retireAt = "2027-01-01T00:00:00Z";
 }

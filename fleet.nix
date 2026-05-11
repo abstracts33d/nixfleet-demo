@@ -33,12 +33,21 @@
         configuration = self.nixosConfigurations.web-01;
         tags = ["web"];
         channel = "stable";
+        # Pre-shared SSH ed25519 pubkey from secrets/host-keys/web-01.pub.
+        # The CP's /v1/enroll rejects any CSR whose pubkey doesn't match
+        # this declaration — pre-generation closes the chicken-and-egg
+        # of "agent can't enroll because fleet.nix doesn't know its key
+        # yet, fleet.nix can't declare the key because the agent hasn't
+        # generated one yet." Run `bash secrets/regenerate-demo-identity.sh`
+        # to (re)mint matching keys + tokens.
+        pubkey = builtins.readFile ./secrets/host-keys/web-01.pub;
       };
       web-02 = {
         system = "x86_64-linux";
         configuration = self.nixosConfigurations.web-02;
         tags = ["web"];
         channel = "edge";
+        pubkey = builtins.readFile ./secrets/host-keys/web-02.pub;
       };
     };
 
@@ -68,7 +77,11 @@
         reconcileIntervalMinutes = 1;
         signingIntervalMinutes = 5;
         # Must be >= 2 * signingIntervalMinutes (RFC-0001 invariant).
-        freshnessWindow = 15;
+        # Demo: 120 min tolerates an idle session between pushes (CI only
+        # signs on push; a 15-min window forces the operator to keep
+        # pushing just to keep the artifact fresh). Production: tighter
+        # values + a scheduled re-sign workflow.
+        freshnessWindow = 120;
         # Demo: permissive mode runs every probe and emits warnings
         # without blocking the build. Production fleets flip to "enforce"
         # once they have real backup units, MFA wiring, and a tracked
@@ -80,7 +93,7 @@
         rolloutPolicy = "all-at-once";
         reconcileIntervalMinutes = 1;
         signingIntervalMinutes = 5;
-        freshnessWindow = 15;
+        freshnessWindow = 120;
         # Edge tolerates compliance drift; stable enforces.
         compliance.mode = "permissive";
       };

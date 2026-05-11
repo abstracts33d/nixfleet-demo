@@ -7,7 +7,7 @@
     #   nixfleet.url = "github:arcanesys/nixfleet/<v0.2-tag>";
     # The fork mirror sidesteps the lab Caddy CA — public github uses
     # publicly-trusted CAs so the runner VM doesn't need extra trust roots.
-    nixfleet.url = "github:abstracts33d/nixfleet?rev=24255b7703ae37039122428b957f313231d02ae6";
+    nixfleet.url = "github:abstracts33d/nixfleet?rev=0964174a654d5032f26c9e4ef425aeeda5d99407";
     nixpkgs.follows = "nixfleet/nixpkgs";
     flake-parts.follows = "nixfleet/flake-parts";
     treefmt-nix.follows = "nixfleet/treefmt-nix";

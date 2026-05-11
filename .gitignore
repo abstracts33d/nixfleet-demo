@@ -5,9 +5,15 @@ CLAUDE.md
 TODO.md
 *.qcow2
 
-# Private keys are generated post-clone by secrets/regenerate-demo-identity.sh.
-# OpenSSH refuses keys with mode looser than 0600, and git can't store 0600 —
-# so we don't track them. Their public counterparts (.pub, recipients.nix)
-# stay tracked so nix flake check works on a fresh clone.
+# Private keys consumed at runtime as ssh -i argument (OpenSSH refuses
+# keys with mode looser than 0600, and git can't store 0600). Their
+# public counterparts (.pub) stay tracked so the flake evaluates on
+# a fresh clone.
+#
+# The fleet-CA / per-host / org-root / bootstrap-token files are NOT
+# gitignored: they're consumed via `builtins.readFile` + `environment.etc`
+# (mode-insensitive), and tracking them keeps `nix flake check` working
+# from a clean clone without the operator having to run the regenerator
+# script first. They're demo identities — see secrets/README.md.
 secrets/demo-ssh-key
 secrets/age-identity.txt
