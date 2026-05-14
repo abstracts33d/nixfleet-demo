@@ -35,17 +35,17 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1778256132,
-        "narHash": "sha256-2K2tZuf1n+frUv9DsPDJTUbnMVIt1E6uVSF04cnxbCQ=",
+        "lastModified": 1778752303,
+        "narHash": "sha256-xQ+V88XBIYNTaTZknqfMaJHLPxOWtG1SsK9Lm2We3CI=",
         "owner": "abstracts33d",
         "repo": "nixfleet-compliance",
-        "rev": "52c8a169f354127b45111832cb31d12e81b6d07f",
+        "rev": "f17bf9603c17f1d7a15022e9787b242e7d3a9caf",
         "type": "github"
       },
       "original": {
         "owner": "abstracts33d",
+        "ref": "v0.2.0",
         "repo": "nixfleet-compliance",
-        "rev": "52c8a169f354127b45111832cb31d12e81b6d07f",
         "type": "github"
       }
     },
@@ -434,17 +434,17 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1778502591,
-        "narHash": "sha256-GaNxoEYvncgLypWKxCZ8XGVzBVbcGjLkV3GBlTvNKis=",
+        "lastModified": 1778749990,
+        "narHash": "sha256-NzzNw9KxEmc2wt8c3pDspPHSyrI+Q+26X1HX2kQtXd0=",
         "owner": "abstracts33d",
         "repo": "nixfleet",
-        "rev": "0964174a654d5032f26c9e4ef425aeeda5d99407",
+        "rev": "f1d82f3ee103c506a583b1bd18a7f6a259f8c150",
         "type": "github"
       },
       "original": {
         "owner": "abstracts33d",
+        "ref": "v0.2.0",
         "repo": "nixfleet",
-        "rev": "0964174a654d5032f26c9e4ef425aeeda5d99407",
         "type": "github"
       }
     },

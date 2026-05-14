@@ -31,6 +31,12 @@ inputs.nixfleet.lib.mkHost {
           enable = true;
           listen = "0.0.0.0:8443";
           openFirewall = true;
+
+          # Agent cert CN suffix. Demo CA has no dNSName constraint
+          # so any string works; production fleets must match this to
+          # the issuance CA's dNSName extension (nixfleet D14).
+          agentCnSuffix = "fleet.demo";
+
           tls.cert = "/var/lib/nixfleet-control-plane/tls/cert.pem";
           tls.key = "/var/lib/nixfleet-control-plane/tls/key.pem";
 
