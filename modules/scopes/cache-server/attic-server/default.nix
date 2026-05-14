@@ -1,5 +1,5 @@
 # Attic binary cache server scope.
-# atticd is supplied by the consumer via nixfleet.atticServer.package —
+# atticd is supplied by the consumer via nixfleet.atticServer.package --
 # typically `inputs.attic.packages.''${system}.attic-server` where
 # `attic` is a flake input of the consumer.
 {

@@ -1,7 +1,7 @@
 # Demo-common config shared by all 4 VMs.
 #
 # Hardware setup (qemu-guest profile, virtio modules, btrfs disko layout)
-# is provided by the framework when `isVm = true` — see nixfleet's
+# is provided by the framework when `isVm = true` -- see nixfleet's
 # tests/fixtures/qemu/{hardware-configuration,disk-config}.nix. This
 # file only carries demo-specific defaults: serial console, root SSH
 # via the demo key, firewall.

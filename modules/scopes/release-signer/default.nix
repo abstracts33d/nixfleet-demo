@@ -12,7 +12,7 @@
   #
   # Implementation: openssl pkeyutl -sign -rawin -inkey <PEM-ed25519>.
   # Earlier versions used `ssh-keygen -Y sign` which produces SSHSIG
-  # armored format — incompatible with nixfleet's verify_artifact.
+  # armored format -- incompatible with nixfleet's verify_artifact.
   signWrapper = pkgs.writeShellApplication {
     name = "nixfleet-sign";
     runtimeInputs = [pkgs.openssl pkgs.coreutils];

@@ -1,8 +1,8 @@
-# Demo identity — PUBLIC, NOT FOR PRODUCTION
+# Demo identity -- PUBLIC, NOT FOR PRODUCTION
 
 > **WARNING:** Every key produced here is a demo identity. The pubkeys
 > live in git so `nix flake check` works on a fresh clone. The private
-> halves are gitignored and regenerated locally — they remain demo
+> halves are gitignored and regenerated locally -- they remain demo
 > material. Do NOT deploy this fleet to production without rotating
 > every key in this directory.
 
@@ -16,7 +16,7 @@
 | `demo-ssh-key` | **no** (gitignored) | SSH private key for `git@forge`. OpenSSH refuses keys with mode looser than 0600 and git can't store 0600, so this file isn't tracked. |
 | `age-identity.txt` | **no** (gitignored) | age private key. Same reasoning. |
 
-## First clone — required setup
+## First clone -- required setup
 
 ```bash
 bash secrets/regenerate-demo-identity.sh
@@ -31,7 +31,7 @@ Existing tracked pubkey/recipient files are overwritten. To regenerate after the
 
 ## Why this shape
 
-OpenSSH and `ssh-add` refuse private keys with mode looser than 0600. Git's working-tree mode for tracked files defaults to 0644, and git only persists the executable bit (no support for 0600). So checking in the private keys would force every operator to `chmod 0600` after every clone — annoying friction for a demo.
+OpenSSH and `ssh-add` refuse private keys with mode looser than 0600. Git's working-tree mode for tracked files defaults to 0644, and git only persists the executable bit (no support for 0600). So checking in the private keys would force every operator to `chmod 0600` after every clone -- annoying friction for a demo.
 
 Gitignoring the private halves and shipping a one-line generator script removes the chmod step entirely. Pubkeys stay in git (mode 0644 is fine for them) so that:
 - `flake.nix` can `builtins.readFile` `secrets/demo-ssh-key.pub` for `nixfleet.isoSshKeys`,

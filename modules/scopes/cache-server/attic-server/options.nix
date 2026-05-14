@@ -1,4 +1,4 @@
-# Attic binary cache server scope — option declarations.
+# Attic binary cache server scope -- option declarations.
 {lib, ...}: let
   types = lib.types;
 in {
@@ -10,7 +10,7 @@ in {
       description = ''
         atticd package. Pass e.g.
         `inputs.attic.packages.''${system}.attic-server` from the
-        consumer flake — the scope cannot reference the attic flake
+        consumer flake -- the scope cannot reference the attic flake
         input directly because the scope's module function receives
         the consumer's specialArgs, not the scope flake's own inputs.
       '';

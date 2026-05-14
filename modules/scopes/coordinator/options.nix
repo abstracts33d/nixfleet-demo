@@ -1,4 +1,4 @@
-# Coordinator meta-scope — option declarations.
+# Coordinator meta-scope -- option declarations.
 #
 # Thin facade over the individual scopes (forge, attic-server, ci-runner,
 # release-signer). Setting nixfleet.coordinator.enable = true cascades
@@ -19,7 +19,7 @@
       type = lib.types.nullOr lib.types.str;
       default = null;
       example = "example.org";
-      description = "Base internal domain. Informational — individual scopes consume it to derive their own FQDNs.";
+      description = "Base internal domain. Informational -- individual scopes consume it to derive their own FQDNs.";
     };
   };
 }

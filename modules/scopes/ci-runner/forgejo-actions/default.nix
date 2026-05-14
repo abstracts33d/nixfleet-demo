@@ -38,17 +38,17 @@ in {
       };
     };
 
-    # Runner environment — two things:
+    # Runner environment -- two things:
     #
     # 1. Give the runner (and its subprocess shells) access to Nix
     #    and the standard toolchain every `runs-on: native`
     #    workflow expects. Without this, jobs fail with "command
     #    not found".
     #
-    #    Uses NixOS's `.path` attribute — additive, merges the
+    #    Uses NixOS's `.path` attribute -- additive, merges the
     #    listed packages into PATH without touching the rest of the
     #    env. (The earlier `serviceConfig.Environment = ["PATH=..."]`
-    #    approach REPLACED the entire env — stripped HOME,
+    #    approach REPLACED the entire env -- stripped HOME,
     #    LOCALE_ARCHIVE, TZDIR etc. and broke the runner at
     #    activation.)
     #
@@ -82,22 +82,22 @@ in {
         ];
         # Static system user instead of upstream's DynamicUser=true.
         # DynamicUser implies an idmapped StateDirectory bind mount
-        # that systemd hardens with `noexec` — fatal for `runs-on:
+        # that systemd hardens with `noexec` -- fatal for `runs-on:
         # native` workflows that compile + execute artifacts (cargo
         # build scripts, test binaries) under the runner's working
-        # dir. Static user → plain bind mount, exec-clean, and the
+        # dir. Static user -> plain bind mount, exec-clean, and the
         # state dir lands on the persisted btrfs subvol with room
         # to grow.
         #
         # PrivateTmp also disabled: the upstream module sets it to
         # `yes` (and DynamicUser=true would force it on regardless),
         # which gives the service a 1.6 GB tmpfs for /tmp. Too small
-        # for the release pipeline — `attic push` buffers multi-GB
+        # for the release pipeline -- `attic push` buffers multi-GB
         # nar files in /tmp, then `nixfleet-release` writes the
         # canonical-bytes tempfile, and the cumulative footprint
         # hits ENOSPC. Falling back to the host /tmp (root fs, 300+
         # GB free here) trades a small isolation property for build
-        # success — acceptable for a runner that already needs broad
+        # success -- acceptable for a runner that already needs broad
         # system access for nix + attic + tpm-sign.
         #
         # NB: a brief detour through DynamicUser=true + mkForce

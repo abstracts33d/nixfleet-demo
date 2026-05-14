@@ -1,4 +1,4 @@
-# Fleet topology — RFC-0001 declarative declaration.
+# Fleet topology -- RFC-0001 declarative declaration.
 #
 # Every block below teaches one v0.2 primitive. Read top-to-bottom:
 #   - hosts: 4 VMs assigned to channels (web-01 stable, web-02 edge)
@@ -35,7 +35,7 @@
         channel = "stable";
         # Pre-shared SSH ed25519 pubkey from secrets/host-keys/web-01.pub.
         # The CP's /v1/enroll rejects any CSR whose pubkey doesn't match
-        # this declaration — pre-generation closes the chicken-and-egg
+        # this declaration -- pre-generation closes the chicken-and-egg
         # of "agent can't enroll because fleet.nix doesn't know its key
         # yet, fleet.nix can't declare the key because the agent hasn't
         # generated one yet." Run `bash secrets/regenerate-demo-identity.sh`
@@ -56,7 +56,7 @@
       infra = {description = "Control-plane and forge";};
       # Per-tag commit pin (nixfleet #88). Uncomment to freeze every
       # `infra`-tagged host on a known-good commit during an audit
-      # window — `nixfleet-release` builds those hosts from the pinned
+      # window -- `nixfleet-release` builds those hosts from the pinned
       # rev instead of the current commit, while everything else
       # follows main as usual. Pin precedence: host > tag > channel.
       #
@@ -135,7 +135,7 @@
 
     complianceFrameworks = ["nis2"];
 
-    # Empty — but the signed artifact still gets produced. CP rebuilt
+    # Empty -- but the signed artifact still gets produced. CP rebuilt
     # from empty state can verify the (empty) revocation set (gap C).
     revocations = [];
   };

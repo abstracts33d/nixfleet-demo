@@ -1,5 +1,5 @@
 {
-  description = "nixfleet-demo — v0.2 minimal reference fleet";
+  description = "nixfleet-demo -- v0.2 minimal reference fleet";
 
   inputs = {
     # Temporary mirror pin (publicly-trusted CAs so the runner VM doesn't

@@ -49,7 +49,7 @@ inputs.nixfleet.lib.mkHost {
           appName = "Nixfleet Demo Forge";
           # Bind on all interfaces so peer VMs can reach Forgejo HTTP via
           # the multicast VLAN (`forge:3001` from cp's POV resolves to
-          # 10.0.100.2 — see modules/vm-network.nix). Production puts a
+          # 10.0.100.2 -- see modules/vm-network.nix). Production puts a
           # reverse proxy in front and keeps Forgejo on loopback.
           http.addr = "0.0.0.0";
           ssh.openFirewall = true;
@@ -68,7 +68,7 @@ inputs.nixfleet.lib.mkHost {
         };
 
         # Demo admin credentials and SSH pubkey baked into /etc.
-        # PUBLIC, NOT FOR PRODUCTION — see secrets/README.md.
+        # PUBLIC, NOT FOR PRODUCTION -- see secrets/README.md.
         environment.etc."nixfleet-demo/forgejo-admin-creds" = {
           text = "demo:demo@nixfleet-demo.invalid:demoadmin1!\n";
           mode = "0640";
@@ -79,7 +79,7 @@ inputs.nixfleet.lib.mkHost {
           ../secrets/demo-ssh-key.pub;
 
         nixfleet.atticServer = {
-          # attic-server comes from the dedicated `attic` flake input —
+          # attic-server comes from the dedicated `attic` flake input --
           # nixfleet itself doesn't package it.
           package = inputs.attic.packages.x86_64-linux.attic-server;
           domain = "cache.demo.invalid";
@@ -130,7 +130,7 @@ inputs.nixfleet.lib.mkHost {
               fi
               umask 077
               printf 'TOKEN=%s\n' "$token" > "$token_file"
-              # 0644 — gitea-runner (different user from forgejo) reads
+              # 0644 -- gitea-runner (different user from forgejo) reads
               # this via EnvironmentFile at registration time.
               chmod 0644 "$token_file"
             fi
@@ -182,7 +182,7 @@ inputs.nixfleet.lib.mkHost {
 
         # forge carries more services than the others. Resource sizing
         # (memory, disk) for the QEMU runner is handled by mkVmApps in
-        # apps.nix, NOT here — the `virtualisation.*` options aren't
+        # apps.nix, NOT here -- the `virtualisation.*` options aren't
         # registered when evaluating system.build.toplevel.
 
         # Open the Forgejo HTTP port for the in-VM CI workflow + the host

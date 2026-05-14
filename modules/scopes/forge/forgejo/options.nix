@@ -1,4 +1,4 @@
-# Forge scope — option declarations.
+# Forge scope -- option declarations.
 {lib, ...}: let
   types = lib.types;
 in {
@@ -57,7 +57,7 @@ in {
         default = true;
         description = ''
           Open the Forgejo SSH port in the system firewall. Defaults to
-          `true` — the natural use of this scope is to expose
+          `true` -- the natural use of this scope is to expose
           `git push/clone` via SSH. Without this, incoming connections
           are silently dropped (port listens but firewall rejects).
           Set to `false` only if SSH is proxied through another
@@ -68,12 +68,12 @@ in {
         type = types.str;
         default = "git";
         description = ''
-          SSH username clients connect as — typically `git@` per the
+          SSH username clients connect as -- typically `git@` per the
           Forgejo/Gitea/GitHub/GitLab convention. Forgejo's NixOS
           module defaults this to the service user (`forgejo`), which
           breaks muscle memory for everyone who's ever cloned a repo.
           Override here so `git@forge-host:owner/repo.git` works out of
-          the box. Not a system user — just a magic string Forgejo
+          the box. Not a system user -- just a magic string Forgejo
           matches on incoming SSH auth.
         '';
       };
@@ -152,7 +152,7 @@ in {
         description = ''
           List of file paths, each containing one SSH public key to register
           on the admin user's Forgejo account. Files are read at service
-          start time — typically agenix-decrypted paths under /run/agenix/.
+          start time -- typically agenix-decrypted paths under /run/agenix/.
           Registration is idempotent (Forgejo dedupes on fingerprint); safe
           to re-run on every deploy. Only applied after `admin.userFile`
           has successfully created the admin user.
@@ -166,7 +166,7 @@ in {
         options = {
           owner = lib.mkOption {
             type = types.str;
-            description = "Forgejo user or organization that owns the repository. MUST already exist as a Forgejo user — typically created via `admin.userFile`.";
+            description = "Forgejo user or organization that owns the repository. MUST already exist as a Forgejo user -- typically created via `admin.userFile`.";
           };
           name = lib.mkOption {
             type = types.str;
@@ -194,7 +194,7 @@ in {
         Repositories to ensure exist on this Forgejo instance. Created
         once after the admin user exists; idempotent on subsequent
         deploys (existing repos are skipped). The declared owner MUST
-        already exist as a Forgejo user — typically `admin.userFile`
+        already exist as a Forgejo user -- typically `admin.userFile`
         created them.
       '';
       example = [

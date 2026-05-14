@@ -14,20 +14,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic V
 - Pinned nixfleet and nixfleet-compliance to their `v0.2.0` tags on the
   abstracts33d github fork (development mirror). Will swap to
   `github:arcanesys/...` once the canonical org publishes v0.2.
-- Demo CP declares `agentCnSuffix = "fleet.demo"` — required by nixfleet
+- Demo CP declares `agentCnSuffix = "fleet.demo"` -- required by nixfleet
   v0.2.0 (no default, refuses silent fallback).
 - Adopted `hostSpec.vmRam` (4 GiB on forge, 2 GiB on cp). Removes the
   `--ram` flag boilerplate from the walkthrough.
 - Dropped the `nixfleet-cp-artifact-bootstrap` consumer-side oneshot from
-  `cp.nix` — framework now emits an equivalent one.
+  `cp.nix` -- framework now emits an equivalent one.
 - Dropped the `boot.loader.systemd-boot.configurationLimit = 10` workaround
-  from `_shared/qemu-vm.nix` — compliance #14 fix lets nullable values pass.
-- Web hosts declare per-host HTTP health probes (nixfleet #86) on `/version` —
-  reconciler gates Healthy → Soaked promotion on probe-passing.
+  from `_shared/qemu-vm.nix` -- compliance #14 fix lets nullable values pass.
+- Web hosts declare per-host HTTP health probes (nixfleet #86) on `/version` --
+  reconciler gates Healthy -> Soaked promotion on probe-passing.
 - `fleet.nix` carries a commented-out `tags.infra.pin` example (nixfleet #88)
   so operators see the commit-pin schema.
 - Stable channel `compliance.mode = "permissive"` so the static gate runs
-  every probe but warns rather than blocking — backup/MFA controls fail on
+  every probe but warns rather than blocking -- backup/MFA controls fail on
   this minimal demo, the warnings are the demonstration.
 - Removed `nixfleet-scopes` flake input (retired upstream).
 - Lifted forge / attic-server / ci-runner / coordinator scopes from the private

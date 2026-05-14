@@ -1,5 +1,5 @@
 {
-  description = "nixfleet-compliance demo — one NixOS host, signed evidence, no fleet";
+  description = "nixfleet-compliance demo -- one NixOS host, signed evidence, no fleet";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

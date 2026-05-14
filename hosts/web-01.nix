@@ -8,13 +8,15 @@
 # Bumping the version string in that file changes both web closures; the
 # rollout sequence is gated by fleet.nix's channelEdges + canary policy.
 #
-# First-boot enrollment:
-#   1. Pre-installed SSH ed25519 host key from secrets/host-keys/web-01
-#      acts as both the SSH host identity AND the agent's mTLS client key.
-#   2. Bootstrap token from secrets/bootstrap-tokens/web-01.json is staged
-#      to /var/lib/nixfleet/bootstrap-token by a first-boot oneshot.
-#   3. Agent calls /v1/enroll, gets a fleet-CA-signed cert, writes it
-#      to /var/lib/nixfleet/agent-cert.pem. Token file is then ignored.
+# Path A trust delivery:
+#   1. fleet.nix declares this host's mTLS client pubkey by reading
+#      ../secrets/host-keys/web-01.pub (PUBLIC, tracked in git).
+#   2. The matching private key + fleet CA cert + bootstrap token are
+#      scp'd into /var/lib/nixfleet-demo/ by `nix run .#provision-secrets`
+#      AFTER first boot. Not baked into the closure.
+#   3. The agent service is gated by ConditionPathExists on the client
+#      key -- it waits inert until provisioning, then provision-secrets
+#      starts it explicitly.
 {inputs, ...}:
 inputs.nixfleet.lib.mkHost {
   hostName = "web-01";
@@ -39,15 +41,19 @@ inputs.nixfleet.lib.mkHost {
         enable = true;
         controlPlaneUrl = "https://cp:8443";
         tags = ["web"];
-        # Trust CP's TLS server cert. CP signs its own cert with the
-        # fleet CA at first boot; agent verifies the chain via the same
-        # CA cert installed below.
-        tls.caCert = "/etc/nixfleet-demo/fleet-ca.pem";
-        # One-shot bootstrap token. Staged from /etc/nixfleet-demo/
-        # by `nixfleet-agent-bootstrap-token.service` below.
-        bootstrapTokenFile = "/var/lib/nixfleet/bootstrap-token";
+        # Agent verifies CP's TLS server cert against this CA.
+        tls.caCert = "/var/lib/nixfleet-demo/fleet-ca.pem";
+        # Dedicated agent identity key (NOT the SSH host key). The
+        # matching pubkey is declared in fleet.nix; CP rejects any
+        # CSR whose pubkey doesn't match the fleet declaration.
+        tls.clientKey = "/var/lib/nixfleet-demo/agent-client.key";
+        # One-shot bootstrap token (signed by org root key, 168h
+        # validity). Agent reads it on first enrollment, ignores it
+        # thereafter (cert at /var/lib/nixfleet/agent-cert.pem takes
+        # precedence).
+        bootstrapTokenFile = "/var/lib/nixfleet-demo/bootstrap-token.json";
         # Per-host health probes (nixfleet #86). The agent runs each
-        # probe on its own interval; the reconciler gates Healthy →
+        # probe on its own interval; the reconciler gates Healthy ->
         # Soaked promotion on `all-probes-passing`. A failing probe
         # holds the wave at this step (mode = enforce).
         healthChecks = {
@@ -64,61 +70,20 @@ inputs.nixfleet.lib.mkHost {
         };
       };
 
-      # Pre-shared SSH ed25519 host key. The agent uses this as its mTLS
-      # client key (`tls.clientKey` defaults to `/etc/ssh/ssh_host_ed25519_key`),
-      # so the CSR pubkey must equal `hosts.web-01.pubkey` declared in
-      # fleet.nix. NixOS's sshd-keygen.service skips ed25519 generation
-      # when this file already exists.
-      environment.etc."ssh/ssh_host_ed25519_key" = {
-        text = builtins.readFile ../secrets/host-keys/web-01;
-        mode = "0600";
-      };
-      environment.etc."ssh/ssh_host_ed25519_key.pub" = {
-        text = builtins.readFile ../secrets/host-keys/web-01.pub;
-        mode = "0644";
-      };
+      # Gate the agent on the operator-supplied private key. Without
+      # this, the unit crash-loops every second logging "file not found"
+      # until provisioning lands. With it, the unit is inert until
+      # provision-secrets stages the key and starts it explicitly.
+      systemd.services.nixfleet-agent.unitConfig.ConditionPathExists = "/var/lib/nixfleet-demo/agent-client.key";
 
-      # Fleet CA cert (public half). Used by the agent to verify CP's
-      # TLS server cert. Same cert installed on cp itself.
-      environment.etc."nixfleet-demo/fleet-ca.pem" = {
-        text = builtins.readFile ../secrets/fleet-ca.pem;
-        mode = "0644";
-      };
-
-      # Per-host bootstrap token (signed by org root key, 168h validity).
-      # Staged into the agent's stateDir by the oneshot below — the
-      # agent expects an absolute path at `bootstrapTokenFile`, and
-      # /etc/* is read-only at runtime.
-      environment.etc."nixfleet-demo/bootstrap-token.json" = {
-        text = builtins.readFile ../secrets/bootstrap-tokens/web-01.json;
-        mode = "0644";
-      };
-
-      systemd.services.nixfleet-agent-bootstrap-token = {
-        description = "Stage one-shot bootstrap token for nixfleet-agent enrollment";
-        wantedBy = ["multi-user.target"];
-        before = ["nixfleet-agent.service"];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          User = "root";
-        };
-        script = ''
-          set -euo pipefail
-          dst=/var/lib/nixfleet/bootstrap-token
-          # Skip if cert already exists — the token is one-shot, the
-          # agent reads it once and then uses the issued cert. Re-staging
-          # would be a no-op (cert path takes precedence) but keeping
-          # the file around is unnecessary attack surface.
-          if [ -f /var/lib/nixfleet/agent-cert.pem ]; then
-            rm -f "$dst"
-            exit 0
-          fi
-          mkdir -p /var/lib/nixfleet
-          cp /etc/nixfleet-demo/bootstrap-token.json "$dst"
-          chmod 0600 "$dst"
-        '';
-      };
+      # Ensure /var/lib/nixfleet exists before the agent runs. The
+      # agent module declares it in `nixfleet.persistence.directories`
+      # but impermanence's bind-mount source isn't pre-created -- the
+      # agent's first-run atomic-write of `agent-cert.pem` fails with
+      # ENOENT otherwise. Worth filing upstream as a framework bug.
+      systemd.tmpfiles.rules = [
+        "d /var/lib/nixfleet 0700 root root - -"
+      ];
 
       services.nginx = {
         enable = true;
@@ -132,6 +97,10 @@ inputs.nixfleet.lib.mkHost {
         entityType = "essential";
       };
       compliance.governance.hostType = "server";
+
+      # /var/lib/nixfleet-demo persists the operator-provisioned
+      # private material across reboots (impermanence wipes /).
+      nixfleet.persistence.directories = ["/var/lib/nixfleet-demo"];
     }
   ];
 }

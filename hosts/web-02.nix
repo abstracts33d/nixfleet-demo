@@ -1,10 +1,7 @@
 # web-02: edge-channel web agent.
 #
-# Identical to web-01 except for hostName + token/host-key paths.
-# Channel assignment (`channel = "edge"`) lives in fleet.nix.
-#
-# /version returns "1.0.0\n" via modules/web-version.nix (shared with web-01).
-# See web-01.nix for the first-boot enrollment flow rationale.
+# Identical to web-01 except for hostName + channel. See web-01.nix for
+# the path A trust-delivery rationale.
 {inputs, ...}:
 inputs.nixfleet.lib.mkHost {
   hostName = "web-02";
@@ -29,8 +26,9 @@ inputs.nixfleet.lib.mkHost {
         enable = true;
         controlPlaneUrl = "https://cp:8443";
         tags = ["web"];
-        tls.caCert = "/etc/nixfleet-demo/fleet-ca.pem";
-        bootstrapTokenFile = "/var/lib/nixfleet/bootstrap-token";
+        tls.caCert = "/var/lib/nixfleet-demo/fleet-ca.pem";
+        tls.clientKey = "/var/lib/nixfleet-demo/agent-client.key";
+        bootstrapTokenFile = "/var/lib/nixfleet-demo/bootstrap-token.json";
         healthChecks = {
           mode = "enforce";
           http = [
@@ -45,44 +43,13 @@ inputs.nixfleet.lib.mkHost {
         };
       };
 
-      environment.etc."ssh/ssh_host_ed25519_key" = {
-        text = builtins.readFile ../secrets/host-keys/web-02;
-        mode = "0600";
-      };
-      environment.etc."ssh/ssh_host_ed25519_key.pub" = {
-        text = builtins.readFile ../secrets/host-keys/web-02.pub;
-        mode = "0644";
-      };
-      environment.etc."nixfleet-demo/fleet-ca.pem" = {
-        text = builtins.readFile ../secrets/fleet-ca.pem;
-        mode = "0644";
-      };
-      environment.etc."nixfleet-demo/bootstrap-token.json" = {
-        text = builtins.readFile ../secrets/bootstrap-tokens/web-02.json;
-        mode = "0644";
-      };
+      systemd.services.nixfleet-agent.unitConfig.ConditionPathExists = "/var/lib/nixfleet-demo/agent-client.key";
 
-      systemd.services.nixfleet-agent-bootstrap-token = {
-        description = "Stage one-shot bootstrap token for nixfleet-agent enrollment";
-        wantedBy = ["multi-user.target"];
-        before = ["nixfleet-agent.service"];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          User = "root";
-        };
-        script = ''
-          set -euo pipefail
-          dst=/var/lib/nixfleet/bootstrap-token
-          if [ -f /var/lib/nixfleet/agent-cert.pem ]; then
-            rm -f "$dst"
-            exit 0
-          fi
-          mkdir -p /var/lib/nixfleet
-          cp /etc/nixfleet-demo/bootstrap-token.json "$dst"
-          chmod 0600 "$dst"
-        '';
-      };
+      # See web-01.nix -- guarantee /var/lib/nixfleet exists before
+      # the agent writes its first-issued cert there.
+      systemd.tmpfiles.rules = [
+        "d /var/lib/nixfleet 0700 root root - -"
+      ];
 
       services.nginx = {
         enable = true;
@@ -96,6 +63,8 @@ inputs.nixfleet.lib.mkHost {
         entityType = "essential";
       };
       compliance.governance.hostType = "server";
+
+      nixfleet.persistence.directories = ["/var/lib/nixfleet-demo"];
     }
   ];
 }

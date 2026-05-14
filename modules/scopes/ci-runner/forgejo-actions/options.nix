@@ -1,4 +1,4 @@
-# Forgejo Actions self-hosted runner — option declarations.
+# Forgejo Actions self-hosted runner -- option declarations.
 {lib, ...}: let
   types = lib.types;
 in {
@@ -29,10 +29,10 @@ in {
       default = ["nixos:host" "native:host"];
       description = ''
         Labels the runner advertises to forgejo. The `:host` suffix
-        is executor metadata — forgejo strips it before label-matching,
+        is executor metadata -- forgejo strips it before label-matching,
         so workflow files use bare `runs-on: native` / `runs-on: nixos`.
 
-        WORKFLOW AUTHORS: do NOT use `runs-on: ubuntu-latest` —
+        WORKFLOW AUTHORS: do NOT use `runs-on: ubuntu-latest` --
         no forgejo runner advertises that label and the job will
         silently never execute. See `LABELS.md` next to this file
         for the full contract.

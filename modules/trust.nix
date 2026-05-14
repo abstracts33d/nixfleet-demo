@@ -1,27 +1,33 @@
-# Trust pin for the demo fleet's release-signing key.
+# Trust pins for the demo fleet.
 #
-# This file is rewritten in place by `nix run .#fetch-release-key`
-# after first boot: the script greps for the placeholder pubkey
-# below and replaces it with the real ed25519 pubkey emitted by
-# forge's first-boot keygen.
+# Two trust slots: ciReleaseKey (verifies signed fleet.resolved.json
+# from forge's CI runner) and orgRootKey (verifies bootstrap tokens
+# at /v1/enroll). Both keys are ed25519 raw 32-byte pubkeys, base64-
+# encoded -- the trust.json wire format.
 #
-# Until the operator runs fetch-release-key, signature verification
-# fails at runtime — but the flake still evaluates because this file
-# is syntactically valid (the placeholder is valid base64 of 32 zero bytes).
+# `ciReleaseKey.current` is patched in place by `nix run .#fetch-release-key`
+# after forge's first boot; `orgRootKey.current` is patched by
+# `bash secrets/regenerate-demo-identity.sh` from secrets/org-root.pub.b64.
+# Until both have real values, runtime verification fails -- but the
+# flake still evaluates because the placeholders are valid base64.
 {...}: {
   nixfleet.trust.ciReleaseKey.current = {
     algorithm = "ed25519";
-    # 32 zero bytes, base64-encoded — placeholder. The real pubkey
-    # lands here when the operator runs `nix run .#fetch-release-key`.
-    public = "AAAAC3NzaC1lZDI1NTE5AAAAIJY1iXqJK1QCcpPcmzEHvvZ17qm2MCboHukATD7vF4Dv";
+    public = "TVViJeqEv1P6ZLiku0JgLeHOqXVYtaTYE9rNO3NDyHA=";
   };
+
+  # orgRootKey.current is a bare-string slot (algorithm pinned to
+  # ed25519 framework-side; see nixfleet's keySlotType in
+  # contracts/trust.nix). Patched by
+  # secrets/regenerate-demo-identity.sh from secrets/org-root.pub.b64.
+  nixfleet.trust.orgRootKey.current = "YTBSsRFbp9hAXqyXp4XFBhqcaSxKU7VRhl3HtRHDfQ0=";
 
   # Trust rotation slots are deliberately commented out for the demo.
   # In production the operator would populate `previous` during the
   # 30-day rotation grace window, then `successor` + `retireAt` to
   # pre-announce the next rotation. See nixfleet contracts/trust.nix.
   #
-  # nixfleet.trust.ciReleaseKey.previous = { algorithm = "ed25519"; public = "AAAAC3NzaC1lZDI1NTE5AAAAIJY1iXqJK1QCcpPcmzEHvvZ17qm2MCboHukATD7vF4Dv"; };
-  # nixfleet.trust.ciReleaseKey.successor = { algorithm = "ed25519"; public = "AAAAC3NzaC1lZDI1NTE5AAAAIJY1iXqJK1QCcpPcmzEHvvZ17qm2MCboHukATD7vF4Dv"; };
+  # nixfleet.trust.ciReleaseKey.previous = { algorithm = "ed25519"; public = "TVViJeqEv1P6ZLiku0JgLeHOqXVYtaTYE9rNO3NDyHA="; };
+  # nixfleet.trust.ciReleaseKey.successor = { algorithm = "ed25519"; public = "TVViJeqEv1P6ZLiku0JgLeHOqXVYtaTYE9rNO3NDyHA="; };
   # nixfleet.trust.ciReleaseKey.retireAt = "2027-01-01T00:00:00Z";
 }

@@ -1,6 +1,6 @@
 # Forgejo git forge scope.
 #
-# HTTP listens on loopback by default — consumer wires the reverse
+# HTTP listens on loopback by default -- consumer wires the reverse
 # proxy (Caddy, nginx, ...). SSH binds a separate port (222 default)
 # so the host's OpenSSH keeps :22.
 {
@@ -35,7 +35,7 @@ in {
           # Override NixOS's default of service-user-as-SSH-username so
           # clients can use `git@<host>` per the Forgejo/Gitea/GitHub/
           # GitLab convention. Matches cfg.ssh.user (default "git").
-          # Not a system user — just a magic string Forgejo matches on
+          # Not a system user -- just a magic string Forgejo matches on
           # incoming SSH auth.
           BUILTIN_SSH_SERVER_USER = cfg.ssh.user;
           SSH_USER = cfg.ssh.user;
@@ -66,7 +66,7 @@ in {
     # SSH-key registration on every start via the Forgejo HTTP API.
     #
     # Why API, not CLI: Forgejo LTS 11 (and earlier) has no
-    # `admin user add-ssh-key` CLI subcommand — that was added in later
+    # `admin user add-ssh-key` CLI subcommand -- that was added in later
     # majors. The HTTP API surface is stable across versions, so we
     # generate a bootstrap access token once (via the CLI, which does
     # have `admin user generate-access-token`) and use it for both the
@@ -95,7 +95,7 @@ in {
 
         # Bootstrap API token. Generated once; reused for every later
         # API call in this scope (SSH keys, repos). The file is
-        # forgejo:forgejo 0600 — never exposed outside the service.
+        # forgejo:forgejo 0600 -- never exposed outside the service.
         token_file=${cfg.dataDir}/.nixfleet-bootstrap-token
         if [ -n "$admin_user" ] && [ ! -f "$token_file" ]; then
           # generate-access-token prints a line like
@@ -121,8 +121,8 @@ in {
 
     # Declarative admin SSH-key registration. Moved out of
     # forgejo.service preStart (HTTP listener not yet up during
-    # preStart → curl fails with HTTP 0). Gated on the admin marker,
-    # the bootstrap token, AND an HTTP-ready probe — see below.
+    # preStart -> curl fails with HTTP 0). Gated on the admin marker,
+    # the bootstrap token, AND an HTTP-ready probe -- see below.
     systemd.services.forgejo-ssh-keys = lib.mkIf (cfg.admin.sshKeyFiles != []) {
       description = "Declarative Forgejo admin SSH key registration";
       after = ["forgejo.service"];
@@ -143,7 +143,7 @@ in {
         # Gate: wait (bounded) for admin marker, bootstrap token, AND
         # the HTTP API to actually accept connections. `After=
         # forgejo.service` only guarantees forgejo.service reached
-        # "active" — Type=simple services declare active as soon as
+        # "active" -- Type=simple services declare active as soon as
         # ExecStart spawns, which happens before Forgejo has finished
         # binding its HTTP socket.
         waited=0
@@ -166,7 +166,7 @@ in {
               key_content="$(cat ${keyFile})"
               if [ -n "$key_content" ]; then
                 echo "forge-ssh-keys: registering ${keyFile} for $admin_user" >&2
-                # POST /api/v1/admin/users/<name>/keys — 201 Created on
+                # POST /api/v1/admin/users/<name>/keys -- 201 Created on
                 # success, 422 on duplicate fingerprint. Both treated as
                 # "already in good state."
                 body=$(jq -nc \
@@ -236,7 +236,7 @@ in {
               echo "forge-repositories: ${repo.owner}/${repo.name} already exists, skipping" >&2
             else
               echo "forge-repositories: creating ${repo.owner}/${repo.name}" >&2
-              # POST /api/v1/admin/users/<owner>/repos — 201 Created on
+              # POST /api/v1/admin/users/<owner>/repos -- 201 Created on
               # success. 422 (duplicate) is treated as "already ok" even
               # though the on-disk check above should have caught it.
               body=$(jq -nc \
