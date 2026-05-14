@@ -33,7 +33,7 @@ A 4-VM minimal reference implementation for [nixfleet](https://github.com/arcane
 
 ## Network (host port forwards)
 
-SSH ports are auto-assigned by `mkVmApps` (alphabetical, `2201 + index`). Additional service ports are declared per-host via `hostSpec.vmPortForwards` (nixfleet [#87](https://github.com/abstracts33d/nixfleet/issues/87)).
+SSH ports are auto-assigned by `mkVmApps` (alphabetical, `2201 + index`). Additional service ports are declared per-host via `hostSpec.vmPortForwards` (nixfleet [#87](https://github.com/arcanesys/nixfleet/issues/87)).
 
 | Service | Guest port | Host port |
 |---|---|---|
@@ -274,6 +274,12 @@ bash secrets/regenerate-demo-identity.sh --force
 ```
 
 See `secrets/README.md`.
+
+## Pilot
+
+You just ran the canonical signed-GitOps loop end-to-end. If you operate servers under NIS2, DORA, ISO 27001, or ANSSI BP-028 — whether on NixOS today or on Ansible / Puppet / Chef — we deliver the same loop on **your regulated zone** as a free 12-week pilot. 5 to 15 hosts; OS-layer migration in scope; auditor-ready evidence packet at month 3. The rest of your infrastructure stays where it is.
+
+Scope, deliverables, and what we ask for in return: <https://arcanesys.fr/en/pilot>. Contact: <contact@arcanesys.fr>.
 
 ## References
 
