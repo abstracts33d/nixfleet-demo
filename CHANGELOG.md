@@ -2,18 +2,20 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic Versioning](https://semver.org/).
 
-## [0.2.0-rc1] - Unreleased
+## [Unreleased]
+
+## [0.2.0] - 2026-05-15
 
 ### Changed
 - **Complete rebuild as v0.2 minimal reference.** Topology shrunk from 6 to 4 VMs
   (forge, cp, web-01, web-02). Single-screen `fleet.nix` exercises every v0.2
   primitive (mkFleet schema, channels, rolloutPolicies, channelEdges,
   disruptionBudgets, complianceFrameworks, revocations).
-- Pinned nixfleet (and nixfleet-compliance) to the abstracts33d fork on github
-  until v0.2 ships canonically on `arcanesys`. Pin: `ef7ab4e3` for nixfleet
-  (covers #86 health probes, #87 vmPortForwards, #88 commit pins, #89 wait_ssh fix,
-  #90 CP self-bootstrap, #92 hostSpec.vmRam), `abff3d8e` for nixfleet-compliance
-  (#14 null configurationLimit). Will swap to `github:arcanesys/...` later.
+- Pinned nixfleet and nixfleet-compliance to their `v0.2.0` tags on the
+  abstracts33d github fork (publicly mirrored from lab). Will swap to
+  `github:arcanesys/...` once the canonical org publishes v0.2.
+- Demo CP declares `agentCnSuffix = "fleet.demo"` — required by nixfleet
+  v0.2.0 (no default, refuses silent fallback).
 - Adopted `hostSpec.vmRam` (4 GiB on forge, 2 GiB on cp). Removes the
   `--ram` flag boilerplate from the walkthrough.
 - Dropped the `nixfleet-cp-artifact-bootstrap` consumer-side oneshot from
@@ -45,5 +47,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic V
 
 Initial release. v0.1 history preserved at commit `2395f11` on the previous main.
 
-[0.2.0-rc1]: https://github.com/arcanesys/nixfleet-demo/compare/2395f11...HEAD
+[Unreleased]: https://github.com/arcanesys/nixfleet-demo/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/arcanesys/nixfleet-demo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/arcanesys/nixfleet-demo/releases/tag/v0.1.0
