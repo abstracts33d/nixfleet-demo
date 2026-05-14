@@ -2,6 +2,8 @@
 
 A 4-VM minimal reference implementation for [nixfleet](https://github.com/arcanesys/nixfleet) v0.2. Demonstrates the canonical GitOps loop end-to-end on your local machine: declarative fleet topology, signed release artifacts, channel-gated wave promotion, magic rollback. Read this file + `fleet.nix`, run three commands, and you have a working v0.2 fleet within ten minutes.
 
+> **Just want to see what signed compliance evidence looks like?** See [`compliance-only/`](compliance-only/) — one NixOS VM running [nixfleet-compliance](https://github.com/arcanesys/nixfleet-compliance) standalone, no fleet, no orchestration, no provisioning. `cd compliance-only && nix run .` → boot → `compliance-check`. Three commands from clone to signed evidence on screen.
+
 > **WARNING:** This repository ships with PUBLIC SSH and age keys under `secrets/demo-*` so newcomers can boot the fleet immediately. **These keys are public. Do not deploy this fleet to production.** See `secrets/README.md` to regenerate or rotate.
 
 ## Topology
