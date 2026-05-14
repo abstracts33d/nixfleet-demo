@@ -1,8 +1,12 @@
 result
 result-*
 .direnv
+.claude/
+.worktrees/
+.mcp.json
 CLAUDE.md
 TODO.md
+docs/superpowers/
 *.qcow2
 
 # Private keys consumed at runtime as ssh -i argument (OpenSSH refuses
