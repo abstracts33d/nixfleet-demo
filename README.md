@@ -277,7 +277,5 @@ See `secrets/README.md`.
 
 ## References
 
-- nixfleet — **temporarily** pinned to the abstracts33d fork on github (`github:abstracts33d/nixfleet`), `main` at `0964174a654d5032f26c9e4ef425aeeda5d99407`. Will swap to `github:arcanesys/nixfleet/<v0.2-tag>` once v0.2 ships canonically.
-- nixfleet-compliance — **temporarily** pinned to the abstracts33d fork on github (`github:abstracts33d/nixfleet-compliance`), `main` at `176f6195e0ea3d03d10b3d750717d39f0888b814`. Provides `compliance.nixosModules.nis2`. Same future-swap as nixfleet.
-- `docs/superpowers/specs/2026-05-07-v0.2-minimal-reference-design.md` — design spec for this rebuild
-- `docs/superpowers/plans/2026-05-07-v0.2-minimal-reference-plan.md` — implementation plan
+- nixfleet — **temporarily** pinned to the abstracts33d fork on github (`github:abstracts33d/nixfleet/v0.2.0`). Will swap to `github:arcanesys/nixfleet/v0.2.0` once that canonical org publishes the tag.
+- nixfleet-compliance — **temporarily** pinned to the abstracts33d fork on github (`github:abstracts33d/nixfleet-compliance/v0.2.0`). Provides `compliance.nixosModules.nis2`. Same future-swap as nixfleet.

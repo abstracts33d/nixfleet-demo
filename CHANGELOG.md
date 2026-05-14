@@ -12,7 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic V
   primitive (mkFleet schema, channels, rolloutPolicies, channelEdges,
   disruptionBudgets, complianceFrameworks, revocations).
 - Pinned nixfleet and nixfleet-compliance to their `v0.2.0` tags on the
-  abstracts33d github fork (publicly mirrored from lab). Will swap to
+  abstracts33d github fork (development mirror). Will swap to
   `github:arcanesys/...` once the canonical org publishes v0.2.
 - Demo CP declares `agentCnSuffix = "fleet.demo"` — required by nixfleet
   v0.2.0 (no default, refuses silent fallback).

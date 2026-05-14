@@ -2,10 +2,9 @@
   description = "nixfleet-demo — v0.2 minimal reference fleet";
 
   inputs = {
-    # Pinned to abstracts33d's public github fork at v0.2.0. Will swap to
+    # Temporary mirror pin (publicly-trusted CAs so the runner VM doesn't
+    # need extra trust roots). Will swap to
     # `github:arcanesys/nixfleet/v0.2.0` once the canonical org publishes.
-    # The fork sidesteps the lab Caddy CA — public github uses publicly-
-    # trusted CAs so the runner VM doesn't need extra trust roots.
     nixfleet.url = "github:abstracts33d/nixfleet/v0.2.0";
     nixpkgs.follows = "nixfleet/nixpkgs";
     flake-parts.follows = "nixfleet/flake-parts";
@@ -14,7 +13,7 @@
       url = "github:booxter/attic/newer-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Same fork-mirror story as nixfleet above. Swap to
+    # Same temporary mirror pin as nixfleet above. Swap to
     # `github:arcanesys/nixfleet-compliance/v0.2.0` once that org publishes.
     compliance = {
       url = "github:abstracts33d/nixfleet-compliance/v0.2.0";
