@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== Checking for real SSH keys ==="
+# Everything under secrets/ is demo identity by design (marked PUBLIC,
+# NOT FOR PRODUCTION) - including the host-keys/ and bootstrap-tokens/
+# subdirs added for v0.2 enrollment. Anywhere else in the tree, an
+# ssh-(ed25519|rsa) line is a real key slipped in by accident - block.
+staged_outside_secrets=$(git diff --cached --name-only | grep -v '^secrets/' || true)
+if [ -n "$staged_outside_secrets" ]; then
+  if git diff --cached -- ':!secrets/' | grep '^+' | grep -v '^+++' \
+       | grep -qE 'ssh-(ed25519|rsa) AAAA[A-Za-z0-9+/]{40,}'; then
+    echo "BLOCKED: real SSH public key detected in staged files."
+    echo "Demo keys live under secrets/; everything else must be a placeholder."
+    echo "Revert with: git checkout -- <file>"
+    exit 1
+  fi
+fi
+
+echo "All pre-commit checks passed."

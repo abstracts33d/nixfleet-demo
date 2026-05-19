@@ -1,6 +1,16 @@
 result
 result-*
 .direnv
+.claude/
+.worktrees/
+.mcp.json
 CLAUDE.md
 TODO.md
+docs/superpowers/
 *.qcow2
+
+# Demo identity under secrets/ is intentionally committed (PUBLIC, NOT
+# FOR PRODUCTION). git stores tracked files at mode 0644 and ssh-add /
+# age-keygen refuse private keys looser than 0600 - fleet-up Step 0
+# enforces 0600 at runtime, independently of git's on-disk mode.
+# See secrets/README.md.

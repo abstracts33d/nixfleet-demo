@@ -15,4 +15,4 @@ If you fork this repo for production use, rotate all credentials.
 
 For issues in this demo beyond the intentional credentials, see the [NixFleet Security Policy](https://github.com/arcanesys/nixfleet/blob/main/SECURITY.md).
 
-For demo-specific issues, email manuel.wegria@arcanesys.fr.
+For demo-specific issues, email security@arcanesys.fr.

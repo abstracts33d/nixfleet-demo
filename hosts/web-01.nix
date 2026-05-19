@@ -1,0 +1,130 @@
+# web-01: stable-channel web agent.
+#
+# Channel assignment lives in fleet.nix (`hosts.web-01.channel = "stable"`).
+# This file returns the `nixosArgs` attrset; the framework's mkFleet
+# wrapper builds the actual nixosConfiguration with hostName + platform
+# + fleetResolved pre-bound (RFC-0011 §2.2 + 9e operator path).
+# Consumer side: `self.fleet.nixosConfigurations.web-01`.
+#
+# /version returns "1.0.0\n" via modules/web-version.nix (shared with web-02).
+# Bumping the version string in that file changes both web closures; the
+# rollout sequence is gated by fleet.nix's channelEdges + canary policy.
+#
+# First-boot enrollment:
+#   1. Pre-installed SSH ed25519 host key from secrets/host-keys/web-01
+#      acts as both the SSH host identity AND the agent's mTLS client key.
+#   2. Bootstrap token from secrets/bootstrap-tokens/web-01.json is staged
+#      to /var/lib/nixfleet/bootstrap-token by a first-boot oneshot.
+#   3. Agent calls /v1/enroll, gets a fleet-CA-signed cert, writes it
+#      to /var/lib/nixfleet/agent-cert.pem. Token file is then ignored.
+{inputs, ...}: {
+  isVm = true;
+  hostSpec = {
+    userName = "root";
+    timeZone = "UTC";
+    locale = "en_US.UTF-8";
+    vmPortForwards = {
+      "80" = 2280; # nginx
+    };
+  };
+  modules = [
+    ./_shared/qemu-vm.nix
+    ../modules/trust.nix
+
+    ../modules/fleet-version.nix
+
+    ../modules/use-forge-cache.nix
+    ../modules/web-version.nix
+    inputs.nixfleet.scopes.persistence.impermanence
+    inputs.compliance.nixosModules.nis2
+    {
+      services.nixfleet-agent = {
+        enable = true;
+        controlPlaneUrl = "https://cp:8443";
+        tags = ["web"];
+        # Trust CP's TLS server cert. CP signs its own cert with the
+        # fleet CA at first boot; agent verifies the chain via the same
+        # CA cert installed below.
+        tls.caCert = "/etc/nixfleet-demo/fleet-ca.pem";
+        # One-shot bootstrap token. Staged from /etc/nixfleet-demo/
+        # by `nixfleet-agent-bootstrap-token.service` below.
+        bootstrapTokenFile = "/var/lib/nixfleet/bootstrap-token";
+        # Health probes are declared at fleet/tag scope in fleet.nix
+        # (RFC-0010): every host carrying the `web` tag picks up the
+        # `nginx-version` probe via `tags.web.healthChecks`. Per-host
+        # overrides — if ever needed — go on `hosts.web-01.healthChecks`
+        # in fleet.nix, not here. `effectiveHealthChecks` is set by
+        # `mkHost` from the resolved fleet-eval result.
+      };
+
+      # Pre-shared SSH ed25519 host key. The agent uses this as its mTLS
+      # client key (`tls.clientKey` defaults to `/etc/ssh/ssh_host_ed25519_key`),
+      # so the CSR pubkey must equal `hosts.web-01.pubkey` declared in
+      # fleet.nix. NixOS's sshd-keygen.service skips ed25519 generation
+      # when this file already exists.
+      environment.etc."ssh/ssh_host_ed25519_key" = {
+        text = builtins.readFile ../secrets/host-keys/web-01;
+        mode = "0600";
+      };
+      environment.etc."ssh/ssh_host_ed25519_key.pub" = {
+        text = builtins.readFile ../secrets/host-keys/web-01.pub;
+        mode = "0644";
+      };
+
+      # Fleet CA cert (public half). Used by the agent to verify CP's
+      # TLS server cert. Same cert installed on cp itself.
+      environment.etc."nixfleet-demo/fleet-ca.pem" = {
+        text = builtins.readFile ../secrets/fleet-ca.pem;
+        mode = "0644";
+      };
+
+      # Per-host bootstrap token (signed by org root key, 168h validity).
+      # Staged into the agent's stateDir by the oneshot below - the
+      # agent expects an absolute path at `bootstrapTokenFile`, and
+      # /etc/* is read-only at runtime.
+      environment.etc."nixfleet-demo/bootstrap-token.json" = {
+        text = builtins.readFile ../secrets/bootstrap-tokens/web-01.json;
+        mode = "0644";
+      };
+
+      systemd.services.nixfleet-agent-bootstrap-token = {
+        description = "Stage one-shot bootstrap token for nixfleet-agent enrollment";
+        wantedBy = ["multi-user.target"];
+        before = ["nixfleet-agent.service"];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          User = "root";
+        };
+        script = ''
+          set -euo pipefail
+          dst=/var/lib/nixfleet/bootstrap-token
+          # Skip if cert already exists - the token is one-shot, the
+          # agent reads it once and then uses the issued cert. Re-staging
+          # would be a no-op (cert path takes precedence) but keeping
+          # the file around is unnecessary attack surface.
+          if [ -f /var/lib/nixfleet/agent-cert.pem ]; then
+            rm -f "$dst"
+            exit 0
+          fi
+          mkdir -p /var/lib/nixfleet
+          cp /etc/nixfleet-demo/bootstrap-token.json "$dst"
+          chmod 0600 "$dst"
+        '';
+      };
+
+      services.nginx = {
+        enable = true;
+        virtualHosts.default = {default = true;};
+      };
+
+      networking.firewall.allowedTCPPorts = [80];
+
+      compliance.frameworks.nis2 = {
+        enable = true;
+        entityType = "essential";
+      };
+      compliance.governance.hostType = "server";
+    }
+  ];
+}

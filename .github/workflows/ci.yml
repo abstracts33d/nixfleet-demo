@@ -1,13 +1,16 @@
 name: CI
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   check:
-    name: Format
+    name: Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -19,3 +22,28 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Check formatting
         run: nix fmt -- --ci
+      - name: Flake check
+        run: nix flake check --no-build
+  build:
+    # Per-host matrix: each host toplevel gets its own 30-min budget and the
+    # builds run in parallel. Previously all four hosts were built serially in
+    # one 30-min job, which exceeded the budget on cold magic-nix-cache runs.
+    name: Build ${{ matrix.host }}
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [forge, cp, web-01, web-02]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Build ${{ matrix.host }}
+        run: |
+          nix build ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel" \
+            --no-link --print-out-paths
